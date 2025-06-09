@@ -18,6 +18,8 @@ func main() {
 			os.Exit(0)
 		case "list-topics":
 			producer.PrintTopics()
+		case "start-producer":
+			producer.ProduceMessages()
 		default:
 			fmt.Println("Unknown action. Please input again.")
 			menu()
