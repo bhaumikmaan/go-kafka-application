@@ -49,3 +49,31 @@ func ConsumeMessages(topic string) {
 		log.Fatal("failed to close connection:", err)
 	}
 }
+
+// ConsumeWithGroup consumes messages using Kafka consumer groups
+// To Test: kafka-console-consumer --bootstrap-server localhost:9092 --topic first_topic --group my-first-application
+func ConsumeWithGroup(topic, groupID string) {
+	r := kafka.NewReader(kafka.ReaderConfig{
+		Brokers:  []string{"localhost:9092"},
+		GroupID:  groupID,
+		Topic:    topic,
+		MaxBytes: 10e6, // 10MB
+	})
+
+	fmt.Printf("Starting consumer group reader: topic=%s, group ID=%s\n", topic, groupID)
+	defer func() {
+		if err := r.Close(); err != nil {
+			log.Fatal("failed to close reader:", err)
+		}
+	}()
+
+	for {
+		m, err := r.ReadMessage(context.Background())
+		if err != nil {
+			log.Printf("Error reading message: %v", err)
+			break
+		}
+		fmt.Printf("Message at %s/%d/%d: %s = %s\n",
+			m.Topic, m.Partition, m.Offset, string(m.Key), string(m.Value))
+	}
+}
