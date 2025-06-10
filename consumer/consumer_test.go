@@ -3,7 +3,6 @@ package consumer
 import (
 	"context"
 	"github.com/segmentio/kafka-go"
-	"os"
 	"testing"
 	"time"
 )
@@ -55,14 +54,9 @@ func TestConsumeWithFakeReader(t *testing.T) {
 func TestKafkaIntegration(t *testing.T) {
 	// kafka-topics --bootstrap-server localhost:9092 --topic test-topic --create
 
-	broker := os.Getenv("KAFKA_BROKER")
-	if broker == "" {
-		broker = "localhost:9092" // default for local
-	}
-
 	// Create a writer
 	writer := kafka.NewWriter(kafka.WriterConfig{
-		Brokers: []string{broker},
+		Brokers: []string{"localhost:9092"},
 		Topic:   "test-topic",
 	})
 
@@ -78,7 +72,7 @@ func TestKafkaIntegration(t *testing.T) {
 
 	// Create a Kafka reader
 	reader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:  []string{broker},
+		Brokers:  []string{"localhost:9092"},
 		GroupID:  "test-group",
 		Topic:    "test-topic",
 		MaxBytes: 10e6,
