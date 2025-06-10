@@ -50,7 +50,7 @@ func main() {
 	fmt.Println("Hello Producer")
 }
 
-// Exported Functions start with a capitalized Letter
+// PrintTopics Exported Functions start with a capitalized Letter
 func PrintTopics() {
 	// Connect to localhost:9092
 	conn, err := kafka.Dial("tcp", "localhost:9092")
@@ -78,6 +78,7 @@ func PrintTopics() {
 	}
 }
 
+// readStream Internally read the stream data and produce messages for the topic
 func readStream() (chan Event, error) {
 	// Channel to send stream data
 	changesChannel := make(chan Event)
@@ -140,8 +141,8 @@ func readStream() (chan Event, error) {
 }
 
 // ProduceMessages TO TEST: kafka-console-consumer --bootstrap-server localhost:9092 --topic wikimedia-stream-golang
-func ProduceMessages() {
-	topic := "wikimedia-stream-golang"
+func ProduceMessages(topic string) {
+	//topic := "wikimedia-stream-golang"
 	partition := 0
 
 	conn, err := kafka.DialLeader(context.Background(), "tcp", "localhost:9092", topic, partition)
