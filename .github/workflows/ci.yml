@@ -1,6 +1,3 @@
-# This workflow will build a golang project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
-
 name: CI
 
 on:
@@ -10,19 +7,69 @@ on:
     branches: [ "main" ]
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
+
+    services:
+      zookeeper:
+        image: confluentinc/cp-zookeeper:7.5.0
+        ports:
+          - 2181:2181
+        env:
+          ZOOKEEPER_CLIENT_PORT: 2181
+          ZOOKEEPER_TICK_TIME: 2000
+
+      kafka:
+        image: confluentinc/cp-kafka:7.5.0
+        ports:
+          - 9092:9092
+        env:
+          KAFKA_BROKER_ID: 1
+          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+          KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+          KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+        options: >-
+          --health-cmd="kafka-topics --bootstrap-server localhost:9092 --list"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
     steps:
       - uses: actions/checkout@v3
 
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.24.3'
+          go-version: '1.21'
+
+      - name: Wait for Kafka to be ready
+        run: |
+          echo "Waiting for Kafka to be ready..."
+          for i in {1..20}; do
+            nc -zv localhost 9092 && echo "Kafka is up!" && break
+            echo "Waiting for Kafka..."
+            sleep 5
+          done
+
+      - name: Create Kafka topic (with retry)
+        run: |
+          for i in {1..10}; do
+            docker exec $(docker ps --filter "ancestor=confluentinc/cp-kafka:7.5.0" --format "{{.Names}}") \
+              kafka-topics --create \
+              --bootstrap-server localhost:9092 \
+              --replication-factor 1 \
+              --partitions 1 \
+              --topic test-topic && break
+            echo "Retrying topic creation..."
+            sleep 3
+          done
 
       - name: Build
         run: go build -v ./...
 
       - name: Test
+        env:
+          KAFKA_BROKER: localhost:9092
         run: go test -v ./...
